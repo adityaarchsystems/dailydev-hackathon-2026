@@ -1,0 +1,502 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head><script data-od-sandbox-shim>(function(){
+  function makeStore(){
+    var data = {};
+    var api = {
+      getItem: function(k){ return Object.prototype.hasOwnProperty.call(data, k) ? data[k] : null; },
+      setItem: function(k, v){ data[k] = String(v); },
+      removeItem: function(k){ delete data[k]; },
+      clear: function(){ data = {}; },
+      key: function(i){ return Object.keys(data)[i] || null; }
+    };
+    Object.defineProperty(api, 'length', { get: function(){ return Object.keys(data).length; } });
+    return api;
+  }
+  function tryShim(name){
+    var works = false;
+    try { works = !!window[name] && typeof window[name].getItem === 'function'; void window[name].length; }
+    catch (_) { works = false; }
+    if (works) return;
+    try { Object.defineProperty(window, name, { configurable: true, value: makeStore() }); }
+    catch (_) { try { window[name] = makeStore(); } catch (__) {} }
+  }
+  tryShim('localStorage');
+  tryShim('sessionStorage');
+  document.addEventListener('click', (e) => {
+    if (!e.target || !(e.target instanceof Element)) return;
+    var link = e.target.closest('a[href]');
+    if (!link) return;
+    var href = link.getAttribute('href');
+    if (href === null) return;
+    var isAnchor = href.startsWith('#') || href === '';
+    if (isAnchor) {
+      e.preventDefault();
+      if (href === '' || href === '#') {
+        window.scrollTo({ top: 0 });
+        history.replaceState(null, '', ' ');
+      } else {
+        var targetId = href.slice(1);
+        var target = targetId ? document.getElementById(targetId) : null;
+        if (target) {
+          target.scrollIntoView();
+          location.hash === href && history.replaceState(null, '', ' ');
+          location.hash = href;
+        }
+      }
+    } else if (link.getAttribute('target') === '_blank') {
+      e.preventDefault();
+      let safe = false;
+      try {
+        var url = new URL(href, location.href);
+        safe =
+          url.protocol === 'http:' ||
+          url.protocol === 'https:' ||
+          url.protocol === 'mailto:';
+      } catch (_) {}
+      safe && window.open(href, '_blank', 'noopener,noreferrer');
+    }
+  });
+})();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calyx Nexus // daily.dev Hackathon v1.0.4</title>
+    
+    <!-- Typography: Geist & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600;700&family=Geist+Mono:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            /* GLOBAL CANVAS PARAMETERS & P3 DARK CONSTRAINTS */
+            --bg: #000000; /* Pure Black */
+            --surface: #0A0A0A; /* Deep Off-Black */
+            --fg: #FFFFFF; /* Pure White */
+            --muted: #888888;
+            --dim: #666666;
+            --border: #1E1E1E; /* Dark Gray Rule */
+            --accent: #0070F3; /* Vercel Blue */
+            --warn: #F5A623; /* Alert Amber */
+            --indigo: #5C7CFA; /* Electric Indigo */
+            --meta: #444444;
+
+            --font-display: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Geist Mono', ui-monospace, monospace;
+            
+            --radius-sm: 4px;
+            
+            /* Slide Dimensions */
+            --slide-width: 1920px;
+            --slide-height: 1080px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background: #000;
+            color: var(--fg);
+            font-family: var(--font-display);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        /* --- FIXED CANVAS FRAMEWORK --- */
+        #canvas {
+            width: var(--slide-width);
+            height: var(--slide-height);
+            background: var(--bg);
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* TOP VERCEL-FIRST APP NAVIGATION RAIL */
+        nav {
+            height: 72px;
+            width: 100%;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 64px;
+            position: absolute;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .nav-left .vercel-logo {
+            font-size: 20px;
+            line-height: 1;
+        }
+
+        .nav-center {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--muted);
+            letter-spacing: 0.02em;
+        }
+
+        .nav-right {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--dim);
+            text-align: right;
+        }
+
+        /* CENTRALIZED COMPACT HIGH-DENSITY COCKPIT CORES */
+        .cockpit-container {
+            width: 1200px;
+            height: 880px;
+            margin: 136px auto 0;
+            display: grid;
+            grid-template-columns: 560px 616px;
+            gap: 24px;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* LEFT VIEWPORT CHANNEL */
+        .viewport-left {
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sub-header {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--dim);
+            text-transform: uppercase;
+            margin-bottom: 32px;
+        }
+
+        h1 {
+            font-size: 52px;
+            font-weight: 700;
+            line-height: 1.1;
+            letter-spacing: -0.04em;
+            text-transform: uppercase;
+            margin-bottom: 40px;
+        }
+
+        /* THE CALYX CONFIGURATION LOG TERMINAL */
+        .terminal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            height: 420px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .terminal-header {
+            height: 36px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            gap: 8px;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        .dot.red { background: #FF5F56; }
+        .dot.yellow { background: #FFBD2E; }
+        .dot.green { background: #27C93F; }
+
+        .terminal-title {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--dim);
+            margin-left: 8px;
+        }
+
+        .terminal-body {
+            padding: 24px;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            line-height: 1.6;
+            color: #999999;
+            flex-grow: 1;
+            white-space: pre-wrap;
+        }
+
+        .log-init { color: var(--accent); }
+        .log-warn { color: var(--warn); }
+        .log-live { color: #999999; }
+
+        .shield-icon {
+            margin-top: auto;
+            margin-left: 0;
+            margin-bottom: 16px;
+            width: 32px;
+            height: 32px;
+            border: 1px solid #FFFFFF;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #FFFFFF;
+        }
+
+        /* RIGHT VIEWPORT CHANNEL */
+        .viewport-right {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .section-header {
+            font-family: var(--font-mono);
+            font-size: 14px;
+            font-weight: 500;
+            color: #FFFFFF;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-header::before {
+            content: '';
+            width: 1px;
+            height: 3px; 
+            background: var(--accent);
+            display: inline-block;
+        }
+
+        /* BENTO MODULE 01: REAL-TIME TIMELINE COUNTDOWN */
+        .bento-countdown {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            height: 180px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .bento-label {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--dim);
+            text-transform: uppercase;
+            width: 100%;
+        }
+
+        .timer-string {
+            font-size: 48px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            position: relative;
+        }
+
+        .timer-string::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: var(--indigo);
+        }
+
+        /* BENTO MODULE 02: THE THREE-TRACK METRIC SPECIFICATION STACK */
+        .bento-metrics {
+            display: flex;
+            flex-direction: column;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--surface);
+            overflow: hidden;
+            flex-grow: 1;
+        }
+
+        .metric-row {
+            padding: 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+        }
+
+        .metric-row:last-child {
+            border-bottom: none;
+        }
+
+        .metric-content {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .metric-tag {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .metric-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--fg);
+        }
+
+        .metric-body {
+            font-size: 14px;
+            color: #999999;
+            line-height: 1.5;
+        }
+
+        .status-chip {
+            border: 1px solid var(--accent);
+            border-radius: var(--radius-sm);
+            padding: 4px 12px;
+            background: #000;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--accent);
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* BASELINE CONSOLE FOOTER METADATA */
+        footer {
+            position: absolute;
+            bottom: 64px;
+            right: 360px; /* Aligned with right viewport channel end */
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--meta);
+            text-align: right;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="canvas">
+        <!-- TOP NAVIGATION RAIL -->
+        <nav>
+            <div class="nav-left">
+                <span class="vercel-logo">▲</span>
+                <span>Aditya Sharma // Calyx Nexus Core</span>
+            </div>
+            <div class="nav-center">
+                projects / calyx-studios / modules / cpm-matrix
+            </div>
+            <div class="nav-right">
+                MAY 21, 20:16:38 IST // [NODE: IND_NODE_01]
+            </div>
+        </nav>
+
+        <!-- CENTRALIZED COCKPIT -->
+        <div class="cockpit-container">
+            
+            <!-- LEFT COLUMN -->
+            <div class="viewport-left">
+                <div class="sub-header">[ RUNTIME_SHELL: DEVELOPMENT_CRUNCH_LOGS ]</div>
+                <h1>THE DAILY.DEV<br>HACKATHON<br><span style='color:#0070F3'>PROTOCOLS.</span></h1>
+                
+                <div class="terminal">
+                    <div class="terminal-header">
+                        <div class="dot red"></div>
+                        <div class="dot yellow"></div>
+                        <div class="dot green"></div>
+                        <div class="terminal-title">terminal/stderr/cpm_nexus_sync.sh</div>
+                    </div>
+                    <div class="terminal-body">MAY 20 17:30:00.000  <span class="log-init">[INIT]</span>  /dailydev/api/handshake -> SUCCESS: Public API gateway unlocked
+MAY 21 14:12:04.881  <span class="log-live">[MUT]</span>   /calyx/nexus/cpm-fusion -> Fusing CPM Canvas floor layout into Nexus data core
+MAY 21 20:15:32.104  <span class="log-warn">[WARN]</span>  /calyx/nexus/graphql-core -> Payload size (4.2MB) exceeds default warm cache threshold
+MAY 21 20:16:38.112  <span class="log-live">[LIVE]</span>  /calyx/mcp/isolation-runtime -> Deterministic tool-calling loop execution latency: 242ms</div>
+                </div>
+
+                <div class="shield-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN -->
+            <div class="viewport-right">
+                <!-- BENTO 01 -->
+                <div class="bento-countdown">
+                    <div class="bento-label">TIME REMAINING BEFORE FEATURE-FREEZE:</div>
+                    <div class="timer-string">93h : 13m : 22s</div>
+                </div>
+
+                <div class="section-header">[ HACKATHON ECOSYSTEM VECTORS // CHOOSE RUNTIME VECTOR ENGINE ]</div>
+
+                <!-- BENTO 02 -->
+                <div class="bento-metrics">
+                    <div class="metric-row">
+                        <div class="metric-content">
+                            <div class="metric-tag" style="color: var(--accent);">CORE_01 //</div>
+                            <div class="metric-title">AUTOMATED PROOF-OF-WORK PORTFOLIOS</div>
+                            <div class="metric-body">Parsing historical user bookmarks, authenticated stack profiles, and active repository contributions to construct un-fakeable developer identity graphs natively.</div>
+                        </div>
+                    </div>
+                    <div class="metric-row">
+                        <div class="metric-content">
+                            <div class="metric-tag">CORE_02 //</div>
+                            <div class="metric-title">NOISE-FILTERED TECH STREAM AGGREGATION</div>
+                            <div class="metric-body">Ingesting daily.dev unstructured datasets across 1,300+ tracked platforms to execute sharp context isolation loops on tag feeds and active developer metrics.</div>
+                        </div>
+                    </div>
+                    <div class="metric-row">
+                        <div class="metric-content">
+                            <div class="metric-tag">CORE_03 //</div>
+                            <div class="metric-title">ONE-CLICK SANDBOX CODE GENERATION</div>
+                            <div class="metric-body">Converting real-time technical reading logs instantly into containerized, deployable boilerplate coding workspace sandboxes.</div>
+                        </div>
+                        <div class="status-chip">EXEC_STATUS: ACTIVE</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FOOTER METADATA -->
+        <footer>
+            [ SUBMISSION_CRITERIA: LIVE_PUBLIC_URL + REPO_INDEXING // TAG: @DAILYDOTDEV ]
+        </footer>
+    </div>
+
+</body>
+</html>
